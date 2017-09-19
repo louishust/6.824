@@ -36,24 +36,36 @@ func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, re
 	// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
 	//
 
-	var done sync.WaitGroup
-
+	tasksch := make(chan int, ntasks)
 	for i := 0; i < ntasks; i++ {
+		tasksch <- i
+	}
+
+	var mutex sync.Mutex
+	cnt := 0
+	for index := range tasksch {
 		worker := <-registerChan
 		var file string = ""
 		if phase == mapPhase {
-			file = mapFiles[i]
+			file = mapFiles[index]
 		}
 
-		args := &DoTaskArgs{jobName, file, phase, i, n_other}
-		done.Add(1)
-		go func(i int) {
-			call(worker, "Worker.DoTask", args, new(struct{}))
-			done.Done()
-			registerChan <- worker
-		}(i)
+		args := &DoTaskArgs{jobName, file, phase, index, n_other}
+		go func(i int, cnt *int) {
+			ret := call(worker, "Worker.DoTask", args, new(struct{}))
+			if ret == false {
+				tasksch <- index
+			} else {
+				mutex.Lock()
+				*cnt = *cnt + 1
+				if *cnt == ntasks {
+					close(tasksch)
+				}
+				mutex.Unlock()
+				registerChan <- worker
+			}
+		}(index, &cnt)
 	}
 
-	done.Wait()
 	fmt.Printf("Schedule: %v phase done\n", phase)
 }
