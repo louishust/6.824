@@ -18,12 +18,10 @@ func doMap(
 	mapF func(file string, contents string) []KeyValue,
 ) {
 	var encs []*json.Encoder
-	debug("start do map\n")
 	buf, _ := ioutil.ReadFile(inFile)
 	s := string(buf)
 	kvs := mapF(inFile, s)
 
-	debug("start do map phase 1\n")
 	encs = []*json.Encoder{}
 	for i := 0; i < nReduce; i++ {
 		imdfilename := reduceName(jobName, mapTaskNumber, i)
@@ -33,15 +31,11 @@ func doMap(
 		encs = append(encs, enc)
 	}
 
-	debug("start do map phase 2\n")
 	for _, kv := range kvs {
 		reduceTaskNumber := ihash(kv.Key) % nReduce
 		encs[reduceTaskNumber].Encode(kv)
-		debug("key:%s\n", kv.Key)
-		debug("value:%s\n", kv.Value)
 	}
 
-	debug("finish do map\n")
 	//
 	// You will need to write this function.
 	//

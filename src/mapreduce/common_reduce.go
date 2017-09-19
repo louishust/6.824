@@ -18,8 +18,6 @@ func doReduce(
 	nMap int, // the number of map tasks that were run ("M" in the paper)
 	reduceF func(key string, values []string) string,
 ) {
-	debug("start do reduce\n")
-
 	kvmap := make(map[string][]string)
 	decs := []*json.Decoder{}
 
@@ -31,7 +29,6 @@ func doReduce(
 		decs = append(decs, dec)
 	}
 
-	debug("start do reduce phase 1\n")
 	for i := 0; i < nMap; i++ {
 		for {
 			var kv KeyValue
@@ -49,7 +46,6 @@ func doReduce(
 		}
 	}
 
-	debug("start do reduce phase 2\n")
 	file, _ := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY, 0666)
 	defer file.Close()
 	enc := json.NewEncoder(file)
@@ -57,8 +53,6 @@ func doReduce(
 	for key, values := range kvmap {
 		enc.Encode(KeyValue{key, reduceF(key, values)})
 	}
-
-	debug("finish do reduce")
 	//
 	// You will need to write this function.
 	//
